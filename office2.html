@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سیستەمی فەرمی فیرقەی ٩</title>
+    <style>
+        @font-face {
+            font-family: 'KurdishFont';
+            src: local('Unikurd Magne'), local('Ali-K.Samik'), local('Tahoma');
+        }
+
+        body { font-family: 'KurdishFont', Tahoma; background-color: #f0f2f5; margin: 0; padding: 0; }
+
+        /* بەشی کۆنتڕۆڵ - چاپ نابێت */
+        .no-print {
+            max-width: 1000px; margin: 20px auto; background: #fff;
+            padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        .section-title { font-weight: bold; margin: 15px 0 5px 0; color: #1565c0; border-bottom: 1px solid #ddd; }
+        .btn-group { display: flex; gap: 8px; margin-top: 15px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: inherit; }
+        .btn-save { background: #2e7d32; color: white; }
+        .btn-print { background: #1565c0; color: white; }
+
+        /* ڕێکخستنی لاپەڕەی A4 بۆ ئەوەی تەنها یەک لاپەڕە بێت */
+        .print-area {
+            position: relative;
+            width: 210mm;
+            height: 296mm; /* کەمێک کەمتر لە A4 بۆ دڵنیایی */
+            padding: 15mm 20mm;
+            margin: 20px auto;
+            background: white;
+            box-sizing: border-box;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: block;
+        }
+
+        /* واتەرمارکەکان */
+        #wm-img-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100mm; opacity: 0.05; z-index: 0; pointer-events: none; display: none; }
+        #wm-text-display { position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; color: rgba(0, 0, 0, 0.04); font-weight: bold; white-space: nowrap; z-index: 1; pointer-events: none; }
+
+        /* هێدەر */
+        .header-section { 
+            display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; 
+            text-align: center; border-bottom: 2.5px solid #000; padding-bottom: 10px; 
+            margin-bottom: 15px;
+        }
+        .header-box { font-size: 14px; font-weight: bold; line-height: 1.6; white-space: pre-line; }
+        #logo-preview { width: 32mm; height: auto; }
+
+        .meta-data { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-bottom: 15px; }
+        .dest-box { text-align: center; font-size: 21px; font-weight: bold; margin-bottom: 8px; }
+        .sub-box { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+
+        /* ناوەرۆک - سنووردارکردنی بەرزایی بۆ ئەوەی نەچێتە لاپەڕەی تر */
+        .letter-text { 
+            line-height: 2.1; font-size: 18.5px; text-align: justify; 
+            white-space: pre-wrap; direction: rtl;
+            max-height: 140mm; /* زۆرترین پانتایی بۆ دەقەکە */
+            overflow: hidden;
+        }
+
+        /* فووتەری جێگیر لە خوارەوەی لاپەڕەکە */
+        .footer-wrapper { 
+            position: absolute;
+            bottom: 20mm; /* مەودا لە لێواری خوارەوە */
+            left: 20mm;
+            right: 20mm;
+            border-top: 1.5px solid #000;
+            padding-top: 10px; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1fr; 
+            gap: 15px;
+        }
+        .footer-cell { font-size: 14px; line-height: 1.5; white-space: pre-line; }
+
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { background: none; }
+            .no-print { display: none !important; }
+            .print-area { margin: 0; border: none; box-shadow: none; width: 210mm; height: 297mm; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <h3 style="text-align:center;">سیستەمی فەرمی (چارەسەری یەک لاپەڕە)</h3>
+    
+    <div class="section-title">١. هێدەر</div>
+    <div class="input-grid">
+        <textarea id="in_h_right" rows="2" placeholder="لای ڕاست"></textarea>
+        <label style="text-align: center;">لۆگۆ: <input type="file" onchange="loadImg(this, 'logo-preview')"></label>
+        <textarea id="in_h_left" rows="2" placeholder="لای چەپ"></textarea>
+    </div>
+
+    <div class="section-title">٢. دەق و واتەرمارک</div>
+    <div class="input-grid">
+        <input type="text" id="in_ref" placeholder="ژمارە">
+        <input type="date" id="in_date">
+        <input type="text" id="wm_input" placeholder="واتەرمارک">
+    </div>
+    <div class="input-grid">
+        <input type="text" id="in_dest" placeholder="بۆ / ...">
+        <input type="text" id="in_sub" placeholder="بابەت">
+        <input type="file" onchange="loadImg(this, 'wm-img-display')">
+    </div>
+    <textarea id="in_content" rows="5" placeholder="ناوەرۆک..."></textarea>
+
+    <div class="section-title">٣. فووتەر</div>
+    <div class="input-grid">
+        <textarea id="in_f_right" rows="2" placeholder="لای ڕاست"></textarea>
+        <textarea id="in_f_center" rows="2" placeholder="ناوەند"></textarea>
+        <textarea id="in_f_left" rows="2" placeholder="لای چەپ"></textarea>
+    </div>
+    
+    <div class="btn-group">
+        <button class="btn-save" onclick="saveToArchive()">📥 ئەرشیف</button>
+        <button class="btn-print" onclick="window.print()">🖨️ چاپکردن</button>
+    </div>
+
+    <table border="1" style="width:100%; margin-top:10px; border-collapse: collapse; background: white;">
+        <thead><tr><th>ژمارە</th><th>بابەت</th><th>کردار</th></tr></thead>
+        <tbody id="archiveBody"></tbody>
+    </table>
+</div>
+
+<div class="print-area">
+    <img id="wm-img-display" src="">
+    <div id="wm-text-display"></div>
+
+    <div class="header-section">
+        <div class="header-box" id="out_h_right" style="text-align: right;"></div>
+        <div class="header-center"><img id="logo-preview" src="https://via.placeholder.com/100"></div>
+        <div class="header-box" id="out_h_left" style="text-align: left;"></div>
+    </div>
+
+    <div class="meta-data">
+        <div>ڕێکەوت: <span id="out_date"></span></div>
+        <div>ژمارە: <span id="out_ref"></span></div>
+    </div>
+
+    <div class="dest-box">بۆ / <span id="out_dest"></span></div>
+    <div class="sub-box" id="out_sub"></div>
+    <div class="letter-text" id="out_content"></div>
+
+    <div class="footer-wrapper">
+        <div class="footer-cell" id="out_f_right" style="text-align: right;"></div>
+        <div class="footer-cell" id="out_f_center" style="text-align: center; font-weight: bold;"></div>
+        <div class="footer-cell" id="out_f_left" style="text-align: left;"></div>
+    </div>
+</div>
+
+<script>
+    function loadImg(input, id) {
+        if (input.files && input.files[0]) {
+            const r = new FileReader();
+            r.onload = (e) => { 
+                const el = document.getElementById(id);
+                el.src = e.target.result; el.style.display = "block";
+            };
+            r.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function refresh() {
+        document.getElementById('out_h_right').innerText = document.getElementById('in_h_right').value;
+        document.getElementById('out_h_left').innerText = document.getElementById('in_h_left').value;
+        document.getElementById('out_ref').innerText = document.getElementById('in_ref').value;
+        document.getElementById('out_date').innerText = document.getElementById('in_date').value;
+        document.getElementById('out_dest').innerText = document.getElementById('in_dest').value;
+        document.getElementById('out_sub').innerText = "بابەت / " + document.getElementById('in_sub').value;
+        document.getElementById('out_content').innerText = document.getElementById('in_content').value;
+        document.getElementById('out_f_right').innerText = document.getElementById('in_f_right').value;
+        document.getElementById('out_f_center').innerText = document.getElementById('in_f_center').value;
+        document.getElementById('out_f_left').innerText = document.getElementById('in_f_left').value;
+        const wm = document.getElementById('wm_input').value;
+        document.getElementById('wm-text-display').innerText = wm;
+        document.getElementById('wm-text-display').style.display = wm ? "block" : "none";
+    }
+
+    function saveToArchive() {
+        const d = {
+            id: Date.now(), ref: document.getElementById('in_ref').value,
+            sub: document.getElementById('in_sub').value, date: document.getElementById('in_date').value,
+            dest: document.getElementById('in_dest').value, cont: document.getElementById('in_content').value,
+            hr: document.getElementById('in_h_right').value, hl: document.getElementById('in_h_left').value,
+            fr: document.getElementById('in_f_right').value, fc: document.getElementById('in_f_center').value, fl: document.getElementById('in_f_left').value
+        };
+        let a = JSON.parse(localStorage.getItem('army_archive_v8')) || [];
+        a.push(d); localStorage.setItem('army_archive_v8', JSON.stringify(a));
+        showArchive();
+    }
+
+    function showArchive() {
+        let a = JSON.parse(localStorage.getItem('army_archive_v8')) || [];
+        let h = "";
+        a.reverse().forEach(i => {
+            h += `<tr><td>${i.ref}</td><td>${i.sub}</td>
+            <td><button onclick="loadOld(${i.id})">بینین</button></td></tr>`;
+        });
+        document.getElementById('archiveBody').innerHTML = h;
+    }
+
+    function loadOld(id) {
+        let a = JSON.parse(localStorage.getItem('army_archive_v8'));
+        let i = a.find(x => x.id === id);
+        document.getElementById('in_ref').value = i.ref; document.getElementById('in_sub').value = i.sub;
+        document.getElementById('in_date').value = i.date; document.getElementById('in_dest').value = i.dest;
+        document.getElementById('in_content').value = i.cont; document.getElementById('in_h_right').value = i.hr;
+        document.getElementById('in_h_left').value = i.hl; document.getElementById('in_f_right').value = i.fr;
+        document.getElementById('in_f_center').value = i.fc; document.getElementById('in_f_left').value = i.fl;
+        refresh(); window.scrollTo(0,0);
+    }
+
+    document.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', refresh));
+    window.onload = showArchive;
+</script>
+
+</body>
+</html>
